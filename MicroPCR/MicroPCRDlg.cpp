@@ -69,6 +69,8 @@ CMicroPCRDlg::CMicroPCRDlg(CWnd* pParent /*=NULL*/)
 	, freeRunningCounter(0)
 	, m_cCompensation(0)
 	, emergencyStop(false)
+	, m_cCaptureTemper(0)
+	, m_cGraphXVal(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -105,6 +107,10 @@ void CMicroPCRDlg::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxFloat(pDX, m_cIntegralMax, 0.0, 10000.0);
 	DDX_Text(pDX, IDC_EDIT_COMPENSATION, m_cCompensation);
 	DDV_MinMaxByte(pDX, m_cCompensation, 0, 200);
+	DDX_Text(pDX, IDC_EDIT_PD_CAPTURE, m_cCaptureTemper);
+	DDV_MinMaxInt(pDX, m_cCaptureTemper, 25, 100);
+	DDX_Text(pDX, IDC_EDIT_CYCLE_MAX, m_cGraphXVal);
+	DDV_MinMaxInt(pDX, m_cGraphXVal, 1, 80);
 }
 
 BEGIN_MESSAGE_MAP(CMicroPCRDlg, CDialog)
@@ -210,7 +216,7 @@ BOOL CMicroPCRDlg::OnInitDialog()
 	CAxis *axis;
 	axis = m_Chart.AddAxis( kLocationBottom );
 	axis->SetTitle(L"PCR Cycles");
-	axis->SetRange(0, 40);
+	axis->SetRange(0, m_cGraphXVal);
 
 	axis = m_Chart.AddAxis( kLocationLeft );
 	axis->SetTitle(L"Sensor Value");
@@ -362,11 +368,11 @@ void CMicroPCRDlg::Serialize(CArchive& ar)
 	// Constants 값을 저장할 때 사용함.
 	if (ar.IsStoring())
 	{
-		ar << m_cMaxActions << m_cTimeOut << m_cArrivalDelta << m_cGraphYMin << m_cGraphYMax << m_cIntegralMax << m_cCompensation;
+		ar << m_cMaxActions << m_cTimeOut << m_cArrivalDelta << m_cGraphYMin << m_cGraphYMax << m_cIntegralMax << m_cCompensation << m_cCaptureTemper << m_cGraphXVal;
 	}
 	else	// Constants 값을 파일로부터 불러올 때 사용한다.
 	{
-		ar >> m_cMaxActions >> m_cTimeOut >> m_cArrivalDelta >> m_cGraphYMin >> m_cGraphYMax >> m_cIntegralMax >> m_cCompensation;
+		ar >> m_cMaxActions >> m_cTimeOut >> m_cArrivalDelta >> m_cGraphYMin >> m_cGraphYMax >> m_cIntegralMax >> m_cCompensation >> m_cCaptureTemper >> m_cGraphXVal;
 
 		UpdateData(FALSE);
 	}
@@ -781,7 +787,10 @@ void CMicroPCRDlg::OnBnClickedButtonConstantsApply()
 	// PID 값을 제외한 나머지 Constants 들을 저장한다.
 	saveConstants();
 
-	CAxis *axis = m_Chart.GetAxisByLocation( kLocationLeft );
+	CAxis *axis = m_Chart.AddAxis( kLocationBottom );
+	axis->SetRange(0, m_cGraphXVal);
+	axis = m_Chart.GetAxisByLocation( kLocationLeft );
+
 	axis->SetRange(m_cGraphYMin, m_cGraphYMax);
 
 	// 동작 중일 경우, 새로 변경된 값으로 pid 를 설정한다.
@@ -1173,7 +1182,7 @@ void CMicroPCRDlg::timeTask()
 
 		// 150108 YJ for camera shoot
 		if( m_currentActionNumber != 0 && 
-			( m_nLeftSec == 1 && ((int)(actions[m_currentActionNumber].Temp) == 72) ))
+			( m_nLeftSec == 1 && ((int)(actions[m_currentActionNumber].Temp) == m_cCaptureTemper) ))
 		{
 			dslr_title = "";
 			EnumWindows(EnumWindowsProc, NULL);
@@ -1188,18 +1197,18 @@ void CMicroPCRDlg::timeTask()
 		}
 
 		if( m_currentActionNumber != 0 && 
-			m_nLeftSec == 2 && ((int)(actions[m_currentActionNumber].Temp) == 72) )
+			m_nLeftSec == 2 && ((int)(actions[m_currentActionNumber].Temp) == m_cCaptureTemper) )
 		{
 			ledControl_b = 0;
 		}
 		else if( m_currentActionNumber != 0 && 
-			m_nLeftSec == 0 && ((int)(actions[m_currentActionNumber].Temp) == 72) )
+			m_nLeftSec == 0 && ((int)(actions[m_currentActionNumber].Temp) == m_cCaptureTemper) )
 		{
 			ledControl_b = 1;
 		}
 
 		// for graph drawing
-		if( ((int)(actions[m_currentActionNumber].Temp) == 72) && 
+		if( ((int)(actions[m_currentActionNumber].Temp) == m_cCaptureTemper) && 
 			m_nLeftSec == 1 )
 		{
 			double lights = (double)(photodiode_h & 0x0f)*255. + (double)(photodiode_l);

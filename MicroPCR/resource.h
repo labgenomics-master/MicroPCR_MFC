@@ -50,7 +50,10 @@
 #define IDC_EDIT_CURRENT_P              1023
 #define IDC_EDIT_CURRENT_I              1024
 #define IDC_EDIT_CURRENT_D              1025
+#define IDC_EDIT_CYCLE_MAX              1026
 #define IDC_CUSTOM_PID_TABLE2           1027
+#define IDC_EDIT_CYCLE_MAX2             1027
+#define IDC_EDIT_PD_CAPTURE             1027
 #define IDC_LIST_PID                    1028
 #define IDC_EDIT_PID_START_TEMP         1029
 #define IDC_EDIT_PID_TARGET_TEMP2       1030
